@@ -1,3 +1,5 @@
+const TODOS_URL = 'https://jsonplaceholder.typicode.com/todos'
+
 const body = document.querySelector('body')
 const deleteModal = createDeleteModal()
 body.append(deleteModal)
@@ -19,6 +21,7 @@ deleteModal.addEventListener('click', event => {
     if (id && taskItem) {
       taskItem.remove()
       tasks = tasks.filter(task => task.id !== id)
+      deleteFromLocalStorage(id)
     }
     closeDeleteModal()
   }
@@ -37,19 +40,11 @@ tasksList.addEventListener('click', event => {
     deletingTaskObj = {id, taskItem}
     showDeleteModal()
   }
-
-  // if (isCheckboxForm) {
-  //   const taskItem = target.closest('.task-item')
-  //   const id = Number(taskItem.dataset.taskId)
-  //
-  //   tasks = tasks.map(task => {
-  //     if (task.id === id) {
-  //       console.log('kek')
-  //       task.completed = !(task.completed)
-  //     }
-  //   })
-  // }
 })
+
+render()
+
+// getAllTodos()
 
 const createTaskForm = document.querySelector('.create-task-block')
 createTaskForm.addEventListener('submit', event => {
@@ -63,6 +58,7 @@ createTaskForm.addEventListener('submit', event => {
   if (isValid) {
     const taskObj = {text: inputValue, id, completed: false}
     tasks.push(taskObj)
+    setItemToLocalStorage(taskObj)
 
     const taskItem = createTaskItem(taskObj)
 
@@ -85,6 +81,85 @@ document.addEventListener('keyup', event => {
     isLightThemeNow = !isLightThemeNow
   }
 })
+
+
+// async function getAllTodos() {
+// const errorMessage = 'Ошибка при получении данных о задачах!'
+//   const loader = document.createElement('span')
+//   loader.innerText = 'Loading...'
+//   loader.style.fontSize = '24px'
+//   loader.style.fontWeight = 'bold'
+//   tasksList.append(loader)
+//
+//   try {
+//     const response = await fetch(TODOS_URL)
+//     if (!response.ok) {
+//       tasksList.innerText = errorMessage
+//       tasksList.style.fontSize = '24px'
+//       tasksList.style.fontWeight = 'bold'
+//       throw new Error(errorMessage)
+//     }
+//
+//     const todos = await response.json()
+//     todos.forEach(todo => {
+//       const todoObj = {text: todo.title, id: todo.id, completed: false}
+//       const todoHTML = createTaskItem(todoObj)
+//
+//       tasks.push(todoObj)
+//       tasksList.append(todoHTML)
+//     })
+//   } catch (error) {
+//     console.error(error)
+//   } finally {
+//     loader.remove()
+//   }
+// }
+
+function render() {
+  const tasksFromStorage = getItemFromLocalStorage()
+
+  if (!Array.isArray(tasksFromStorage) && tasksFromStorage !== null) {
+    tasks.push(tasksFromStorage)
+    const taskHTML = createTaskItem(task)
+    tasksList.append(taskHTML)
+  } else if (Array.isArray(tasksFromStorage)) {
+    tasks = tasksFromStorage
+
+    tasks.forEach(task => {
+      const taskHTML = createTaskItem(task)
+      tasksList.append(taskHTML)
+    })
+  }
+
+
+}
+
+function setItemToLocalStorage(item, key = 'tasks') {
+  let tasks = []
+  const tasksFromStorage = getItemFromLocalStorage()
+
+  if (!Array.isArray(tasksFromStorage) && tasksFromStorage !== null) {
+    tasks.push(tasksFromStorage)
+  } else if (Array.isArray(tasksFromStorage)) {
+    tasks = tasksFromStorage
+  }
+
+  tasks.push(item)
+  const tasksJSON = JSON.stringify(tasks)
+
+  localStorage.setItem(key, tasksJSON)
+}
+
+function getItemFromLocalStorage(key = 'tasks') {
+  return JSON.parse(localStorage.getItem(key))
+}
+
+function deleteFromLocalStorage(id, key = 'tasks') {
+  let tasksFromStorage = getItemFromLocalStorage()
+  tasksFromStorage = tasksFromStorage.filter(task => task.id !== id)
+
+  localStorage.setItem(key, JSON.stringify(tasksFromStorage))
+}
 
 // Функция isValid проверяет валидность введенного названия задачи
 function checkInputValueOnValidation(inputValue) {
@@ -207,7 +282,7 @@ function closeDeleteModal() {
   deleteModal.classList.add('modal-overlay_hidden')
 }
 
-
+// Функция changeAppTheme() меняет тему приложения
 function changeAppTheme(isLightTheme) {
   const newTheme = isLightThemeNow ? 'dark' : 'light'
   const body = document.querySelector('body')
